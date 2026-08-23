@@ -1,0 +1,25 @@
+{
+  "name": "mobile-ecom-root",
+  "version": "1.0.0",
+  "description": "MERN Stack Mobile Phone & Accessories E-Commerce Platform",
+  "scripts": {
+    "install-all": "npm install --legacy-peer-deps && npm install --prefix backend --legacy-peer-deps && npm install --prefix frontend --legacy-peer-deps && npm install --prefix services/auth-service --legacy-peer-deps && npm install --prefix services/user-service --legacy-peer-deps && npm install --prefix services/product-service --legacy-peer-deps && npm install --prefix services/search-service --legacy-peer-deps && npm install --prefix services/cart-service --legacy-peer-deps && npm install --prefix services/order-service --legacy-peer-deps",
+    "gateway": "npm run dev --prefix backend",
+    "auth-srv": "npm run dev --prefix services/auth-service",
+    "user-srv": "npm run dev --prefix services/user-service",
+    "product-srv": "npm run dev --prefix services/product-service",
+    "search-srv": "npm run dev --prefix services/search-service",
+    "cart-srv": "npm run dev --prefix services/cart-service",
+    "order-srv": "npm run dev --prefix services/order-service",
+    "frontend": "npm run dev --prefix frontend",
+    "dev": "concurrently \"npm run gateway\" \"npm run auth-srv\" \"npm run user-srv\" \"npm run product-srv\" \"npm run search-srv\" \"npm run cart-srv\" \"npm run order-srv\" \"npm run frontend\"",
+    "seed": "node seed_all.js"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "mongoose": "^9.7.4"
+  }
+}
