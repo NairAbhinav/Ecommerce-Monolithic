@@ -3,8 +3,12 @@ import api from '../../utils/api.js';
 
 // Helper to get items from local storage
 const getLocalCart = () => {
-  const cart = localStorage.getItem('guestCart');
-  return cart ? JSON.parse(cart) : [];
+  try {
+    const cart = localStorage.getItem('guestCart');
+    return cart ? JSON.parse(cart) : [];
+  } catch {
+    return [];
+  }
 };
 
 const initialState = {
@@ -13,15 +17,28 @@ const initialState = {
   error: null
 };
 
-// Fetch cart items
+// Fetch cart items (and sync any guest cart items if logged in)
 export const fetchCart = createAsyncThunk('cart/fetchCart', async (_, { getState, rejectWithValue }) => {
   const { auth } = getState();
   if (auth.userInfo) {
     try {
+      // Sync any guest cart items to the database cart
+      const guestCart = getLocalCart();
+      if (guestCart && guestCart.length > 0) {
+        for (const item of guestCart) {
+          try {
+            await api.post('/cart', { productId: item.productId, quantity: item.quantity });
+          } catch (e) {
+            console.error('Failed to sync guest cart item:', e.message);
+          }
+        }
+        localStorage.removeItem('guestCart');
+      }
+
       const { data } = await api.get('/cart');
-      return data.items.map(item => ({
-        productId: item.productId?._id || '',
-        name: item.productId?.name || 'Deleted Product',
+      return (data.items || []).map(item => ({
+        productId: item.productId?._id || item.productId || '',
+        name: item.productId?.name || 'Item',
         brand: item.productId?.brand || '',
         price: item.productId?.price || 0,
         discount: item.productId?.discount || 0,
@@ -46,8 +63,8 @@ export const addToCart = createAsyncThunk('cart/addToCart', async ({ product, qu
   if (auth.userInfo) {
     try {
       const { data } = await api.post('/cart', { productId: product._id, quantity: qty });
-      return data.items.map(item => ({
-        productId: item.productId?._id || '',
+      return (data.items || []).map(item => ({
+        productId: item.productId?._id || item.productId || '',
         name: item.productId?.name || '',
         brand: item.productId?.brand || '',
         price: item.productId?.price || 0,
@@ -90,8 +107,8 @@ export const updateCartQty = createAsyncThunk('cart/updateCartQty', async ({ pro
   if (auth.userInfo) {
     try {
       const { data } = await api.put(`/cart/${productId}`, { quantity: qty });
-      return data.items.map(item => ({
-        productId: item.productId?._id || '',
+      return (data.items || []).map(item => ({
+        productId: item.productId?._id || item.productId || '',
         name: item.productId?.name || '',
         brand: item.productId?.brand || '',
         price: item.productId?.price || 0,
@@ -122,8 +139,8 @@ export const deleteCartItem = createAsyncThunk('cart/deleteCartItem', async (pro
   if (auth.userInfo) {
     try {
       const { data } = await api.delete(`/cart/${productId}`);
-      return data.items.map(item => ({
-        productId: item.productId?._id || '',
+      return (data.items || []).map(item => ({
+        productId: item.productId?._id || item.productId || '',
         name: item.productId?.name || '',
         brand: item.productId?.brand || '',
         price: item.productId?.price || 0,

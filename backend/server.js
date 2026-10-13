@@ -2,60 +2,91 @@ import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import path from 'path';
-import proxy from 'express-http-proxy';
+import fs from 'fs';
+import connectDB from './config/db.js';
+
+// Route imports
+import authRoutes from './routes/authRoutes.js';
+import userRoutes from './routes/userRoutes.js';
+import productRoutes from './routes/productRoutes.js';
+import cartRoutes from './routes/cartRoutes.js';
+import orderRoutes from './routes/orderRoutes.js';
 
 dotenv.config();
+
+// Connect to MongoDB
+connectDB();
 
 const app = express();
 
 app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Serve static upload directory from the Product Service uploads folder
-const __dirname = path.resolve();
-const uploadsPath = path.join(__dirname, '../services/product-service/uploads');
-app.use('/uploads', express.static(uploadsPath));
-
-// Middleware to log proxy routing
+// Request logging middleware
 app.use((req, res, next) => {
-  console.log(`[Gateway Proxy] ${req.method} ${req.originalUrl}`);
+  if (process.env.NODE_ENV !== 'test') {
+    console.log(`[Monolith] ${req.method} ${req.originalUrl}`);
+  }
   next();
 });
 
-// Helper: preserve the original request path when proxying
-const withPath = (prefix) => ({
-  proxyReqPathResolver: (req) => `${prefix}${req.url}`
+const __dirname = path.resolve();
+
+// Static uploads directory
+const uploadsPath = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsPath)) {
+  fs.mkdirSync(uploadsPath, { recursive: true });
+}
+app.use('/uploads', express.static(uploadsPath));
+
+
+// API Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/cart', cartRoutes);
+app.use('/api/orders', orderRoutes);
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'healthy', mode: 'monolith', timestamp: new Date() });
 });
 
-// Proxy routes matching the implementation plan
-app.use('/api/auth', proxy('http://localhost:5001', withPath('/api/auth')));
-app.use('/api/users', proxy('http://localhost:5002', withPath('/api/users')));
+// Serve frontend static build in production (or if dist folder exists)
+const frontendDistPath = path.join(__dirname, '../frontend/dist');
+const localDistPath = path.join(__dirname, 'public');
 
-// Route GET /api/products (specifically product listing/searching/filtering) to Search Service
-// Note: app.get passes the full original URL as req.url (unlike app.use which strips the mount path),
-// so we pass req.url directly to avoid doubling the path prefix.
-app.get('/api/products', proxy('http://localhost:5004', {
-  proxyReqPathResolver: (req) => req.url
-}));
+let staticPath = null;
+if (fs.existsSync(localDistPath) && fs.existsSync(path.join(localDistPath, 'index.html'))) {
+  staticPath = localDistPath;
+} else if (fs.existsSync(frontendDistPath) && fs.existsSync(path.join(frontendDistPath, 'index.html'))) {
+  staticPath = frontendDistPath;
+}
 
-// Route all other Product Service actions (CRUD, details, reviews, batch) to Product Service
-app.use('/api/products', proxy('http://localhost:5003', withPath('/api/products')));
+if (staticPath) {
+  console.log(`Serving static frontend from: ${staticPath}`);
+  app.use(express.static(staticPath));
+  app.get('*', (req, res, next) => {
+    if (req.originalUrl.startsWith('/api') || req.originalUrl.startsWith('/uploads')) {
+      return next();
+    }
+    res.sendFile(path.join(staticPath, 'index.html'));
+  });
+} else {
+  app.get('/', (req, res) => {
+    res.send('Monolithic E-Commerce API is running...');
+  });
+}
 
-app.use('/api/cart', proxy('http://localhost:5005', withPath('/api/cart')));
-app.use('/api/orders', proxy('http://localhost:5006', withPath('/api/orders')));
-
-// Root route
-app.get('/', (req, res) => {
-  res.send('API Gateway is running...');
-});
-
-// Custom 404 handler
+// 404 Handler for unmatched routes
 app.use((req, res, next) => {
   const error = new Error(`Not Found - ${req.originalUrl}`);
   res.status(404);
   next(error);
 });
 
-// Global Error Handler Middleware
+// Global Error Handler
 app.use((err, req, res, next) => {
   const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
   res.status(statusCode);
@@ -68,5 +99,7 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-  console.log(`API Gateway running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+  console.log(`Monolithic E-Commerce Platform running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
 });
+
+export default app;

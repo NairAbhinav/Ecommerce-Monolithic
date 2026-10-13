@@ -1,25 +1,22 @@
 {
-  "name": "mobile-ecom-root",
+  "name": "mobile-ecom-monolith",
   "version": "1.0.0",
-  "description": "MERN Stack Mobile Phone & Accessories E-Commerce Platform",
+  "description": "MERN Stack Mobile Phone & Accessories Monolithic E-Commerce Platform",
   "scripts": {
-    "install-all": "npm install --legacy-peer-deps && npm install --prefix backend --legacy-peer-deps && npm install --prefix frontend --legacy-peer-deps && npm install --prefix services/auth-service --legacy-peer-deps && npm install --prefix services/user-service --legacy-peer-deps && npm install --prefix services/product-service --legacy-peer-deps && npm install --prefix services/search-service --legacy-peer-deps && npm install --prefix services/cart-service --legacy-peer-deps && npm install --prefix services/order-service --legacy-peer-deps",
-    "gateway": "npm run dev --prefix backend",
-    "auth-srv": "npm run dev --prefix services/auth-service",
-    "user-srv": "npm run dev --prefix services/user-service",
-    "product-srv": "npm run dev --prefix services/product-service",
-    "search-srv": "npm run dev --prefix services/search-service",
-    "cart-srv": "npm run dev --prefix services/cart-service",
-    "order-srv": "npm run dev --prefix services/order-service",
+    "install-all": "npm install --legacy-peer-deps && npm install --prefix backend --legacy-peer-deps && npm install --prefix frontend --legacy-peer-deps",
+    "backend": "npm run dev --prefix backend",
     "frontend": "npm run dev --prefix frontend",
-    "dev": "concurrently \"npm run gateway\" \"npm run auth-srv\" \"npm run user-srv\" \"npm run product-srv\" \"npm run search-srv\" \"npm run cart-srv\" \"npm run order-srv\" \"npm run frontend\"",
-    "seed": "node seed_all.js"
+    "dev": "concurrently \"npm run backend\" \"npm run frontend\"",
+    "build:frontend": "npm run build --prefix frontend",
+    "build": "npm run build:frontend",
+    "start": "npm start --prefix backend",
+    "seed": "npm run seed --prefix backend"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
-    "mongoose": "^9.7.4"
+    "mongoose": "^8.4.1"
   }
 }

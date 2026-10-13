@@ -1,14 +1,18 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { Trash2, ArrowRight, ShoppingBag } from 'lucide-react';
-import { updateCartQty, deleteCartItem } from '../store/slices/cartSlice.js';
+import { updateCartQty, deleteCartItem, fetchCart } from '../store/slices/cartSlice.js';
 
 const Cart = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
   const { cartItems, loading } = useSelector((state) => state.cart);
+
+  useEffect(() => {
+    dispatch(fetchCart());
+  }, [dispatch]);
 
   const handleQtyChange = (productId, newQty, stock) => {
     const qty = Math.max(1, Math.min(stock, newQty));
